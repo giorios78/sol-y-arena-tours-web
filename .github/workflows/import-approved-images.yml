@@ -1,0 +1,51 @@
+name: Import original approved image files
+on:
+  push:
+    paths:
+      - '.github/workflows/import-approved-images.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  copy-identical-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download binary originals and verify SHA256 (no edits or recompression)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          while read -r filename sha256; do
+            curl --fail --location --silent --show-error --retry 3 --connect-timeout 15 --max-time 120 --output "assets/$filename" "https://headless-kjfgelcthub-giorios78-1409.wix-site-host.com/assets/$filename"
+            printf '%s  %s\n' "$sha256" "assets/$filename" | sha256sum --check
+          done <<'CHECKSUMS'
+          beach.jpg e0f287ef6def0fc48f65277bb37be45a62e93663a2d43fbc6bf955053227df01
+          cali.jpg 8b1ef84dfc0290465b1292a266633bd9167a28e52bce905fe97e70d85e33aa73
+          cartagena.jpg f6ac61eb658951cfacb460d1ca83b997f9a4cfa2f606c5a5ee56167285a9857a
+          cocora-hero.jpg 9e782f7c45ded547553836a75d8ac8ab56fea7e481dcda500c52beffcb729d73
+          cocora.jpg 236db4c2eefc081433a47fc31204af61d6cd5eb3b13358cafedae073344c1bec
+          colegios.jpg 151da3647abddecacf557d4bc3995f80c25c28e8125e293a99305ab6a34c8bc3
+          guatape-piedra-del-penol.jpg 2c4277532254cadc11a3d29c403c0697d9decaf537e2c5b0d08d8ff6d9c13ef8
+          internacional.jpg 8fb367c8121ee5f5c18164b3b29784b1e3684c68885c7b813010c22e355e5686
+          logo-sol-y-arena-oficial.png 1ea56ca731ae03f69419488eb2d39cd088ead5247b76dddb94ef78bb34c6bc26
+          nacional.jpg c2e40b4f9ff5ad44b13e56fff37c0a0557f579825cea72cbeba90abf2785a60d
+          pasadias.jpg 11f8efea25ae15be4dcb46c0a263e5b245f0336e73beb6f379ff67a6f3b72d94
+          service-colegios.jpg 61900eec3fbed982962ccfcc0791f89b689c044ef5083ea175d5364a7c9064b1
+          servicios-aprobados.jpg dd25fb3c6a78ffc512a96086ae71553e6e6016d8fa439a489be5951b32c703d3
+          tiquetes.jpg eb198d46b94dcb6dcb0092dee773e371354ef6c1621d45e28110039562a15bc7
+          titulo-aprobado.jpg f53393581a06854a0abc40d352f6ec371a8ce7762a194840d80769e3bd12a280
+          transporte.jpg 5cbd21fa421e9db83d552df82e5eb6950bb3a7c945c58fa13577bd3973127574
+          tropical.jpg 5fa545ca4ea1bc0379139eba8c5591589061c1ffcb7d3c0745cb0f66a9798e82
+          CHECKSUMS
+      - name: Commit assets into site repo without changing HTML, CSS, SVG or JS
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/
+          if ! git diff --cached --quiet; then
+            git commit -m "Preservar las 17 imágenes originales sin alterar sus bytes"
+            git push origin HEAD:main
+          fi
